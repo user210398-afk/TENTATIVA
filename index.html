@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedHub - Simulados das Provas 2026</title>
+  
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="data:application/manifest+json;utf8,{%22name%22:%22MedHub%20Simulados%22,%22short_name%22:%22MedHub%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#f8fafc%22,%22theme_color%22:%22#6d28d9%22}">
+  <meta name="theme-color" content="#6d28d9">
+
+  <!-- Tipografia Híbrida: Plus Jakarta Sans (UI) & Lora (Questões) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Ícones Phosphor -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Bibliotecas Externas -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <i class="ph-fill ph-stethoscope"></i> MedHub
+      </div>
+      <nav class="nav-menu">
+        <button class="nav-item active" onclick="voltarParaInicio()"><i class="ph-duotone ph-squares-four"></i> Início</button>
+        <button class="nav-item" onclick="abrirCalendarioInterativo()"><i class="ph-duotone ph-calendar-blank"></i> Calendário</button>
+        <button class="nav-item" onclick="toggleScratchpad()"><i class="ph-duotone ph-note-pencil"></i> Bloco de Notas</button>
+        <button class="nav-item" onclick="abrirModalAjuda()"><i class="ph-duotone ph-question"></i> Ajuda & Regras</button>
+        <button class="nav-item" onclick="abrirModalConfig()"><i class="ph-duotone ph-sliders-horizontal"></i> Configurações</button>
+        <button id="btn-back" class="nav-item danger-hover hidden" onclick="voltar()"><i class="ph-bold ph-arrow-left"></i> Voltar</button>
+      </nav>
+    </aside>
+
+    <div class="main-content">
+      <header class="top-header">
+        <div class="header-titles">
+          <span class="badge-tag" id="badge-top">Simulados Med 2026</span>
+          <h1 class="brand-title" id="main-title">Simulados das Provas 2026</h1>
+          <p class="brand-subtitle" id="main-subtitle">Selecione uma matéria para visualizar e responder às questões.</p>
+        </div>
+        <button class="btn-omnisearch" onclick="abrirOmnisearch()">
+          <i class="ph-bold ph-magnifying-glass"></i> Pesquisar simulado...
+        </button>
+      </header>
+
+      <div class="dashboard-widgets" id="dashboard-widgets"></div>
+
+      <div id="hub-view">
+        <!-- Bento Box de Matérias -->
+        <main id="tela-materias">
+          <div class="section-header"><i class="ph-bold ph-books"></i> Matérias Disponíveis</div>
+          <div class="grid-container bento-active" id="grid-materias">
+            
+            <div class="subject-card" onclick="selecionarMateria('fisiologia', 'Fisiologia')">
+              <div>
+                <i class="ph-duotone ph-heartbeat card-icon"></i>
+                <h3>Fisiologia</h3>
+                <p>Sistemas corporais, homeostase e mecânica orgânica.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Módulos →</span>
+                <span class="count-badge" id="count-fisiologia">0 simulados</span>
+              </div>
+            </div>
+
+            <div class="subject-card" onclick="selecionarMateria('micro', 'Microbiologia')">
+              <div>
+                <i class="ph-duotone ph-virus card-icon"></i>
+                <h3>Microbiologia</h3>
+                <p>Bactérias, virologia, micologia e patogenia.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Bimestres →</span>
+                <span class="count-badge" id="count-micro">0 simulados</span>
+              </div>
+            </div>
+
+            <div class="subject-card" onclick="selecionarMateria('parasito', 'Parasitologia')">
+              <div>
+                <i class="ph-duotone ph-bug card-icon"></i>
+                <h3>Parasitologia</h3>
+                <p>Protozoários, helmintos, vetores e diagnósticos.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Bimestres →</span>
+                <span class="count-badge" id="count-parasito">0 simulados</span>
+              </div>
+            </div>
+
+            <div class="subject-card" onclick="selecionarMateria('patologia', 'Patologia')">
+              <div>
+                <i class="ph-duotone ph-microscope card-icon"></i>
+                <h3>Patologia</h3>
+                <p>Processos patológicos gerais e lesões celulares.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Bimestres →</span>
+                <span class="count-badge" id="count-patologia">0 simulados</span>
+              </div>
+            </div>
+
+            <div class="subject-card" onclick="selecionarMateria('imuno', 'Imunologia')">
+              <div>
+                <i class="ph-duotone ph-shield-check card-icon"></i>
+                <h3>Imunologia</h3>
+                <p>Resposta imune inata, adaptativa e imunopatologia.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Bimestres →</span>
+                <span class="count-badge" id="count-imuno">0 simulados</span>
+              </div>
+            </div>
+
+            <div class="subject-card" onclick="selecionarMateria('vigilancia', 'Vigilância em Saúde')">
+              <div>
+                <i class="ph-duotone ph-first-aid-kit card-icon"></i>
+                <h3>Vigilância em Saúde</h3>
+                <p>Epidemiologia, saúde pública e prevenção de agravos.</p>
+              </div>
+              <div class="card-footer">
+                <span>Selecionar Bimestres →</span>
+                <span class="count-badge" id="count-vigilancia">0 simulados</span>
+              </div>
+            </div>
+
+          </div>
+        </main>
+
+        <!-- Trilha de Divisões -->
+        <main id="tela-divisoes" class="hidden">
+          <div class="section-header" id="titulo-divisoes"><i class="ph-bold ph-list-numbers"></i> Selecione a Divisão</div>
+          <div class="timeline-container" id="container-divisoes"></div>
+        </main>
+
+        <!-- Grid de Simulados -->
+        <main id="tela-simulados" class="hidden">
+          <div class="section-header" id="titulo-simulados"><i class="ph-bold ph-file-text"></i> Simulados Disponíveis</div>
+          <div class="grid-container" id="grid-simulados"></div>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bloco de Notas -->
+  <div id="scratchpad-panel" class="scratchpad-panel">
+    <div class="scratchpad-header">
+      <h3><i class="ph-duotone ph-note-pencil"></i> Anotações Rápidas</h3>
+      <button onclick="toggleScratchpad()" class="btn-close-scratchpad"><i class="ph-bold ph-x"></i></button>
+    </div>
+    <textarea id="scratchpad-text" placeholder="Digite suas anotações aqui... Salvo automaticamente no seu navegador."></textarea>
+  </div>
+
+  <!-- Modal Genérico -->
+  <div id="modal-container" class="modal-overlay">
+    <div class="modal-box" id="modal-box-content"></div>
+  </div>
+
+  <!-- Exam Viewer -->
+  <div id="tela-prova" class="exam-view">
+    <div class="spinner-overlay" id="spinner-loader">
+      <div class="spinner"></div>
+      <p style="margin-top: 15px; font-weight: 700; color: var(--text-main);">Carregando avaliação...</p>
+    </div>
+    <button class="btn-close-exam" onclick="fecharProva()"><i class="ph-bold ph-arrow-left"></i> Voltar ao Hub</button>
+    <iframe id="iframe-simulado" src="" onload="esconderSpinner()"></iframe>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
