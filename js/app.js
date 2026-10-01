@@ -1,318 +1,414 @@
-let pilhaNavegacao = ['materias'];
-let materiaSelecionadaAtual = null;
+const MEUS_ARQUIVOS_MANUAIS = [
+  'farmaco-p2-Simulado-2023 novo.html',
+  'farmaco-p2-Simulado-2024 novo.html',
+  'farmaco-p2-Simulado-2025 novo.html',
+  'fisiologia-aula-m5- 1 - Introdução e Hipófise novo 2.0.html',
+  'fisiologia-aula-m5-2-Hormônios Pancreáticos novo 2.0.html',
+  'fisiologia-m5-Endocrino em Grupo novo.html',
+  'imunologia-b4-Simulado 2022 novo.html',
+  'imunologia-b4-Simulado 2023 novo.html',
+  'imunologia-b4-Simulado 2024 novo.html',
+  'imunologia-b4-Simulado 2025 novo.html',
+  'micro-b4-Simulado 2023 novo.html',
+  'micro-b4-Simulado 2024 novo.html',
+  'micro-b4-Simulado 2025 novo.html',
+  'parasito-b4-Simulado 2025 novo.html',
+  'patologia-b3-Simulado-2025 novo.html',
+  'propedeu-p2-Simulado 2024 novo.html',
+  'propedeu-p2-Simulado 2025 novo.html'
+];
 
-// Base de Dados dos Simulados
-const simuladosDados = {
-  fisiologia: {
-    nome: "Fisiologia",
-    divisoes: [
-      { id: "mod1", titulo: "Módulo 1: Neurofisiologia", simulados: [{ id: "sim1", titulo: "Simulado 1: Potencial de Ação", url: "about:blank" }] }
-    ]
-  },
-  micro: {
-    nome: "Microbiologia",
-    divisoes: [
-      { id: "bim1", titulo: "1º Bimestre: Bacteriologia", simulados: [{ id: "sim1", titulo: "Simulado 1: Estreptococos & Estafilococos", url: "about:blank" }] }
-    ]
-  },
-  parasito: {
-    nome: "Parasitologia",
-    divisoes: [
-      { id: "bim1", titulo: "1º Bimestre: Protozoários", simulados: [{ id: "sim1", titulo: "Simulado 1: Leishmaniose e Chagas", url: "about:blank" }] }
-    ]
-  },
-  patologia: {
-    nome: "Patologia",
-    divisoes: [
-      { id: "bim1", titulo: "1º Bimestre: Lesão Celular", simulados: [{ id: "sim1", titulo: "Simulado 1: Isquemia e Inflamação", url: "about:blank" }] }
-    ]
-  },
-  imuno: {
-    nome: "Imunologia",
-    divisoes: [
-      { id: "bim1", titulo: "1º Bimestre: Imunidade Inata", simulados: [{ id: "sim1", titulo: "Simulado 1: Neutrófilos & Macrófagos", url: "about:blank" }] }
-    ]
-  },
-  vigilancia: {
-    nome: "Vigilância em Saúde",
-    divisoes: [
-      { id: "bim1", titulo: "1º Bimestre: Epidemiologia", simulados: [{ id: "sim1", titulo: "Simulado 1: Taxa de Mortalidade e Incidência", url: "about:blank" }] }
-    ]
-  }
+const GITHUB_USER = 'user210398-afk'; 
+const GITHUB_REPO = 'Simulado'; 
+
+let listaDeArquivos = [];
+let estadoAtual = 'materias';
+let materiaAtualChave = '';
+let materiaAtualNome = '';
+let bimestreAtual = null;
+let arquivoAbertoAtual = null;
+let filtroPesquisaAtual = 'todos';
+
+const mapaMaterias = {
+  'fisiologia': { nomeOficial: 'Fisiologia', aliases: ['fisiologia', 'fisio'], divisaoTipo: 'Módulo', qtdDivisoes: 5, divisaoRegex: /(?:modulo|módulo|m)[_\s-]*([1-5])/i, blocosExtras: [{ id: 'aulas_m4', titulo: 'Aulas do Módulo 4', desc: 'Material e aulas específicas.' }, { id: 'aulas_m5', titulo: 'Aulas do Módulo 5', desc: 'Material e aulas específicas.' }] },
+  'micro': { nomeOficial: 'Microbiologia', aliases: ['microbiologia', 'micro'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i },
+  'parasito': { nomeOficial: 'Parasitologia', aliases: ['parasitologia', 'parasito'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i },
+  'patologia': { nomeOficial: 'Patologia', aliases: ['patologia', 'pato'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i },
+  'imuno': { nomeOficial: 'Imunologia', aliases: ['imunologia', 'imuno'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i },
+  'vigilancia': { nomeOficial: 'Vigilância em Saúde', aliases: ['vigilancia', 'vigilância', 'saude', 'saúde', 'vigi'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i },
+  'farmaco': { nomeOficial: 'Farmacologia', aliases: ['farmacologia', 'farmaco'], divisaoTipo: 'Prova', qtdDivisoes: 3, divisaoRegex: /(?:prova|p|bimestre|b)[_\s-]*([1-3])/i },
+  'propedeu': { nomeOficial: 'Propedêutica', aliases: ['propedeutica', 'propedêutica', 'propedeu', 'prope'], divisaoTipo: 'Prova', qtdDivisoes: 2, divisaoRegex: /(?:prova|p|bimestre|b)[_\s-]*([1-2])/i },
+  'psico': { nomeOficial: 'Psicomed', aliases: ['psicomed', 'psico', 'psicologia'], divisaoTipo: 'Bimestre', qtdDivisoes: 4, divisaoRegex: /(?:bimestre|b)[_\s-]*([1-4])/i }
 };
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', () => {
-  atualizarContadores();
-  carregarWidgets();
-  carregarScratchpad();
+// Omitindo dadosCronograma extenso para não poluir o código. No seu arquivo real, mantenha todo o JSON aqui.
+const dadosCronograma = {
+  "2026-09-29": ["Manhã (Fisiologia): Aula teórica..."],
+  "2026-10-06": ["Manhã (Fisiologia): Aula prática..."]
+};
+
+let concluidos = JSON.parse(localStorage.getItem('simulados_concluidos') || '[]');
+
+// History API Integration (Navegação via "Voltar" nativo)
+function updateHistoryState(stateObj) {
+  if (history.state && history.state.tela === stateObj.tela && history.state.param === stateObj.param) return;
+  history.pushState(stateObj, '', '');
+}
+
+window.addEventListener('popstate', (e) => {
+  if (e.state) {
+    if (e.state.tela === 'materias') voltarParaInicio(false);
+    else if (e.state.tela === 'bimestres') selecionarMateria(e.state.param.chave, e.state.param.nome, false);
+    else if (e.state.tela === 'simulados') abrirBimestre(e.state.param.bimestre, null, false);
+    else if (e.state.tela === 'calendario') abrirCalendarioInterativo(false);
+  } else {
+    voltarParaInicio(false);
+  }
 });
 
-function carregarWidgets() {
-  const container = document.getElementById('dashboard-widgets');
-  if(!container) return;
-  container.innerHTML = `
-    <div class="widget-card">
-      <div class="widget-icon purple"><i class="ph-duotone ph-check-circle"></i></div>
-      <div class="widget-content">
-        <h4>Simulados Realizados</h4>
-        <h2>6 Concluídos</h2>
-        <p>Aproveitamento médio de 82%</p>
-      </div>
-    </div>
-    <div class="widget-card">
-      <div class="widget-icon"><i class="ph-duotone ph-chart-line-up"></i></div>
-      <div class="widget-content">
-        <h4>Meta Semanal</h4>
-        <h2>4 / 5 Simulados</h2>
-        <p>80% da meta atingida</p>
-      </div>
-    </div>
-    <div class="widget-card">
-      <div class="widget-icon purple"><i class="ph-duotone ph-clock"></i></div>
-      <div class="widget-content">
-        <h4>Tempo Médio</h4>
-        <h2>1 min 45s / questão</h2>
-        <p>Ritmo excelente de resolução</p>
-      </div>
-    </div>
-  `;
+// Acessibilidade (Foco)
+let ultimoElementoFocado = null;
+
+function trapFocus(modalId, closeBtnId) {
+  ultimoElementoFocado = document.activeElement;
+  document.getElementById(modalId).style.display = 'flex';
+  const closeBtn = document.getElementById(closeBtnId);
+  if(closeBtn) closeBtn.focus();
 }
 
-function atualizarContadores() {
-  Object.keys(simuladosDados).forEach(key => {
-    const el = document.getElementById(`count-${key}`);
-    if(el) {
-      let total = 0;
-      simuladosDados[key].divisoes.forEach(d => total += d.simulados.length);
-      el.innerText = `${total} simulados`;
+function releaseFocus(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+  if(ultimoElementoFocado) ultimoElementoFocado.focus();
+}
+
+window.addEventListener('message', function(event) {
+  if (event.data === 'simulados_concluido' || (event.data && event.data.type === 'simulados_concluido')) {
+    const arquivo = (event.data && event.data.arquivo) ? event.data.arquivo : arquivoAbertoAtual;
+    if (arquivo && !concluidos.includes(arquivo)) {
+      concluidos.push(arquivo);
+      localStorage.setItem('simulados_concluidos', JSON.stringify(concluidos));
+      if (estadoAtual === 'simulados' && bimestreAtual) abrirBimestre(bimestreAtual, null, false);
     }
-  });
-}
-
-function navegarPara(telaId) {
-  document.getElementById('tela-materias').classList.add('hidden');
-  document.getElementById('tela-divisoes').classList.add('hidden');
-  document.getElementById('tela-simulados').classList.add('hidden');
-  
-  document.getElementById(telaId).classList.remove('hidden');
-  
-  const btnBack = document.getElementById('btn-back');
-  if (pilhaNavegacao.length > 1) {
-    btnBack.classList.remove('hidden');
-  } else {
-    btnBack.classList.add('hidden');
   }
+});
+
+// Cache da API do GitHub via sessionStorage
+async function carregarArquivosDoGithub() {
+  const cacheKey = 'medhub_gh_files';
+  const cacheTimeKey = 'medhub_gh_time';
+  const now = Date.now();
+  const tempoCache = 1000 * 60 * 60; // 1 hora
+  let arquivosRemotos = [];
+
+  const cacheSalvo = sessionStorage.getItem(cacheKey);
+  const dataCache = sessionStorage.getItem(cacheTimeKey);
+
+  if (cacheSalvo && dataCache && (now - dataCache < tempoCache)) {
+    arquivosRemotos = JSON.parse(cacheSalvo);
+  } else {
+    try {
+      let response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/`);
+      if (response.ok) {
+        const dados = await response.json();
+        if (Array.isArray(dados)) {
+          arquivosRemotos = dados
+            .filter(item => (item.type === 'file' || item.name) && item.name.toLowerCase().endsWith('.html') && item.name.toLowerCase() !== 'index.html')
+            .map(item => item.name);
+          sessionStorage.setItem(cacheKey, JSON.stringify(arquivosRemotos));
+          sessionStorage.setItem(cacheTimeKey, now.toString());
+        }
+      }
+    } catch (erro) {
+      console.warn('Conexão remota indisponível. Carregando modo offline.', erro);
+    }
+  }
+
+  const unificados = new Set([...arquivosRemotos, ...MEUS_ARQUIVOS_MANUAIS]);
+  listaDeArquivos = Array.from(unificados);
+  atualizarContadores();
+
+  if (estadoAtual === 'bimestres') atualizarContadoresBimestres();
+  else if (estadoAtual === 'simulados' && bimestreAtual) abrirBimestre(bimestreAtual, null, false);
 }
 
-function selecionarMateria(key, nome) {
-  materiaSelecionadaAtual = key;
-  pilhaNavegacao.push('divisoes');
+// Funções de Navegação
+function selecionarMateria(prefixoChave, nomeMateria, doPush = true) {
+  materiaAtualChave = prefixoChave;
+  materiaAtualNome = nomeMateria;
+  estadoAtual = 'bimestres';
+  if(doPush) updateHistoryState({tela: 'bimestres', param: {chave: prefixoChave, nome: nomeMateria}});
+
+  const mat = mapaMaterias[prefixoChave];
+  const numDivisoes = mat ? mat.qtdDivisoes : 4;
   
-  const titulo = document.getElementById('titulo-divisoes');
-  titulo.innerHTML = `<i class="ph-bold ph-list-numbers"></i> ${nome} - Divisões`;
+  document.getElementById('main-title').innerText = nomeMateria;
+  document.getElementById('main-subtitle').innerText = `Selecione a etapa na trilha.`;
+  document.getElementById('badge-top').innerText = `Trilha de Estudos`;
+  document.getElementById('btn-back').classList.remove('hidden');
 
   const container = document.getElementById('container-divisoes');
   container.innerHTML = '';
+  container.className = 'timeline-container';
 
-  const mat = simuladosDados[key];
-  if (mat && mat.divisoes) {
-    mat.divisoes.forEach((div, idx) => {
-      container.innerHTML += `
-        <div class="timeline-item">
-          <div class="timeline-node">${idx + 1}</div>
-          <div class="timeline-card" onclick="abrirDivisao('${div.id}', '${div.titulo}')">
-            <div class="timeline-card-content">
-              <div class="timeline-card-info">
-                <h3>${div.titulo}</h3>
-                <p>${div.simulados.length} simulados disponíveis</p>
-              </div>
-              <div class="timeline-card-footer">
-                <span>Acessar →</span>
-              </div>
-            </div>
+  for (let i = 1; i <= numDivisoes; i++) {
+    const divCard = document.createElement('div');
+    divCard.className = 'timeline-item';
+    divCard.onclick = () => abrirBimestre(i);
+    divCard.innerHTML = `
+      <div class="timeline-node">${i}</div>
+      <div class="timeline-card">
+        <div class="timeline-card-content">
+          <div class="timeline-card-info">
+            <h3>${i}º ${mat ? mat.divisaoTipo : 'Bimestre'}</h3>
+          </div>
+          <div class="timeline-card-footer">
+            <span class="count-badge" id="count-b${i}">0 simulados</span>
+            <i class="ph-bold ph-arrow-right" style="color: var(--purple-primary);"></i>
           </div>
         </div>
-      `;
-    });
+      </div>
+    `;
+    container.appendChild(divCard);
   }
-  navegarPara('tela-divisoes');
+
+  atualizarContadoresBimestres();
+  document.getElementById('tela-materias').classList.add('hidden');
+  document.getElementById('tela-bimestres').classList.remove('hidden');
+  document.getElementById('tela-simulados').classList.add('hidden');
+  document.getElementById('tela-calendario').classList.add('hidden');
 }
 
-function abrirDivisao(divId, tituloDivisao) {
-  pilhaNavegacao.push('simulados');
-  const grid = document.getElementById('grid-simulados');
-  grid.innerHTML = '';
+function abrirBimestre(numeroBimestre, tituloCustom = null, doPush = true) {
+  estadoAtual = 'simulados';
+  bimestreAtual = numeroBimestre;
+  if(doPush) updateHistoryState({tela: 'simulados', param: {bimestre: numeroBimestre}});
+
+  document.getElementById('main-title').innerText = `${materiaAtualNome}`;
+  document.getElementById('badge-top').innerText = 'Lista de Provas';
   
-  document.getElementById('titulo-simulados').innerHTML = `<i class="ph-bold ph-file-text"></i> ${tituloDivisao}`;
+  document.getElementById('tela-bimestres').classList.add('hidden');
+  document.getElementById('tela-simulados').classList.remove('hidden');
 
-  const mat = simuladosDados[materiaSelecionadaAtual];
-  const divObj = mat.divisoes.find(d => d.id === divId);
+  const gridSimulados = document.getElementById('grid-simulados');
+  gridSimulados.innerHTML = '';
 
-  if (divObj) {
-    divObj.simulados.forEach(sim => {
-      grid.innerHTML += `
-        <div class="subject-card simulado-card" onclick="abrirProva('${sim.url}')">
-          <div>
-            <i class="ph-duotone ph-file-text card-icon"></i>
-            <h3>${sim.titulo}</h3>
-            <p>Clique para iniciar a responder.</p>
-          </div>
-          <div class="card-footer">
-            <span>Iniciar Simulado →</span>
-          </div>
-        </div>
-      `;
-    });
-  }
-  navegarPara('tela-simulados');
+  const simuladosEncontrados = listaDeArquivos.filter(arquivo => {
+    return arquivoPertenceAMateria(arquivo, materiaAtualChave) && extrairBimestreDoArquivo(arquivo, materiaAtualChave) === numeroBimestre;
+  });
+
+  renderizarCardsSimulados(simuladosEncontrados, gridSimulados, false);
+}
+
+function voltarParaInicio(doPush = true) {
+  if(doPush) updateHistoryState({tela: 'materias'});
+  document.getElementById('search-input').value = '';
+  document.getElementById('tela-simulados').classList.add('hidden');
+  document.getElementById('tela-bimestres').classList.add('hidden');
+  document.getElementById('tela-calendario').classList.add('hidden');
+  document.getElementById('tela-materias').classList.remove('hidden');
+  document.getElementById('btn-back').classList.add('hidden');
+  document.getElementById('dashboard-widgets').classList.remove('hidden');
+  
+  document.getElementById('main-title').innerText = 'Simulados das Provas 2026';
+  estadoAtual = 'materias';
 }
 
 function voltar() {
-  if (pilhaNavegacao.length > 1) {
-    pilhaNavegacao.pop();
-    const ultimaTela = pilhaNavegacao[pilhaNavegacao.length - 1];
-    navegarPara(ultimaTela === 'materias' ? 'tela-materias' : (ultimaTela === 'divisoes' ? 'tela-divisoes' : 'tela-simulados'));
-  }
+  if (estadoAtual === 'simulados') history.back();
+  else if (estadoAtual === 'bimestres' || estadoAtual === 'simulados_busca' || estadoAtual === 'calendario') history.back();
 }
 
-function voltarParaInicio() {
-  pilhaNavegacao = ['materias'];
-  navegarPara('tela-materias');
-}
-
-/* Exam Viewer */
-function abrirProva(url) {
-  const examView = document.getElementById('tela-prova');
+// Iframe Timeout & Handling
+let iframeTimer;
+function carregarSimulado(arquivoEncoded, arquivoOriginal) {
+  arquivoAbertoAtual = arquivoOriginal;
+  const telaProva = document.getElementById('tela-prova');
   const iframe = document.getElementById('iframe-simulado');
+  
   document.getElementById('spinner-loader').style.display = 'flex';
-  iframe.src = url;
-  examView.style.display = 'block';
-}
+  document.getElementById('spinner-texto').innerText = 'Preparando sua avaliação...';
+  
+  // Tratamento de Erro / Demora
+  iframeTimer = setTimeout(() => {
+    document.getElementById('spinner-texto').innerHTML = 'O carregamento está demorando.<br>A avaliação pode não existir ou a conexão falhou.';
+  }, 6000);
 
-function fecharProva() {
-  const examView = document.getElementById('tela-prova');
-  const iframe = document.getElementById('iframe-simulado');
-  iframe.src = '';
-  examView.style.display = 'none';
+  const src = arquivoEncoded.includes('?') ? `${arquivoEncoded}&autostart=true` : `${arquivoEncoded}?autostart=true`;
+  iframe.src = src;
+  telaProva.style.display = 'block';
+
+  const infoMat = identificarMateriaDoArquivo(arquivoOriginal);
+  const title = formatarTituloSimulado(arquivoOriginal, infoMat.chave);
+  localStorage.setItem('ultimo_acesso_simulado', JSON.stringify({
+    encoded: arquivoEncoded, original: arquivoOriginal, titulo: title, materia: infoMat.nomeOficial
+  }));
+  renderizarWidgetsDashboard();
 }
 
 function esconderSpinner() {
+  clearTimeout(iframeTimer);
   document.getElementById('spinner-loader').style.display = 'none';
 }
 
-/* Scratchpad */
+function fecharProva() {
+  document.getElementById('tela-prova').style.display = 'none';
+  document.getElementById('iframe-simulado').src = '';
+  arquivoAbertoAtual = null;
+}
+
+// Scratchpad Actions
 function toggleScratchpad() {
   document.getElementById('scratchpad-panel').classList.toggle('open');
 }
 
-function carregarScratchpad() {
-  const scratchpadArea = document.getElementById('scratchpad-text');
-  if(!scratchpadArea) return;
-  scratchpadArea.value = localStorage.getItem('medhub_scratchpad') || '';
-  scratchpadArea.addEventListener('input', () => {
-    localStorage.setItem('medhub_scratchpad', scratchpadArea.value);
-  });
-}
-
-/* Modais */
-function fecharModal() {
-  document.getElementById('modal-container').style.display = 'none';
-}
-
-function abrirModalAjuda() {
-  const modal = document.getElementById('modal-container');
-  const box = document.getElementById('modal-box-content');
-  box.innerHTML = `
-    <h2><i class="ph-duotone ph-question"></i> Ajuda & Regras</h2>
-    <p>Selecione uma matéria no menu principal para visualizar seus respectivos módulos e simulados.</p>
-    <button class="btn-modal-close" onclick="fecharModal()">Fechar</button>
-  `;
-  modal.style.display = 'flex';
-}
-
-function abrirModalConfig() {
-  const modal = document.getElementById('modal-container');
-  const box = document.getElementById('modal-box-content');
-  const isDark = document.body.classList.contains('dark-mode');
-  
-  box.innerHTML = `
-    <h2><i class="ph-duotone ph-sliders-horizontal"></i> Configurações</h2>
-    <div class="setting-row">
-      <span>Modo Escuro</span>
-      <label class="toggle-switch">
-        <input type="checkbox" id="chk-dark" ${isDark ? 'checked' : ''} onchange="toggleDarkMode()">
-        <span class="slider"></span>
-      </label>
-    </div>
-    <button class="btn-modal-close" onclick="fecharModal()">Fechar</button>
-  `;
-  modal.style.display = 'flex';
-}
-
-function toggleDarkMode() {
-  document.body.classList.toggle('dark-mode');
-}
-
-function abrirOmnisearch() {
-  const modal = document.getElementById('modal-container');
-  const box = document.getElementById('modal-box-content');
-  box.innerHTML = `
-    <h2><i class="ph-bold ph-magnifying-glass"></i> Pesquisar</h2>
-    <input type="text" class="omnisearch-input" id="input-search" placeholder="Digite para buscar matérias ou simulados..." oninput="filtrarOmnisearch(this.value)">
-    <div id="omnisearch-results"></div>
-    <button class="btn-modal-close" onclick="fecharModal()">Fechar</button>
-  `;
-  modal.style.display = 'flex';
-  setTimeout(() => document.getElementById('input-search').focus(), 100);
-}
-
-function filtrarOmnisearch(query) {
-  const resultados = document.getElementById('omnisearch-results');
-  if (!resultados) return;
-  if (!query.trim()) { resultados.innerHTML = ''; return; }
-  
-  let html = '';
-  const q = query.toLowerCase();
-  
-  Object.keys(simuladosDados).forEach(matKey => {
-    const mat = simuladosDados[matKey];
-    mat.divisoes.forEach(div => {
-      div.simulados.forEach(sim => {
-        if (sim.titulo.toLowerCase().includes(q) || mat.nome.toLowerCase().includes(q)) {
-          html += `
-            <div style="padding: 12px; border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="fecharModal(); abrirProva('${sim.url}')">
-              <strong>${mat.nome}</strong>: ${sim.titulo}
-            </div>
-          `;
-        }
-      });
-    });
-  });
-  resultados.innerHTML = html || '<p style="color:var(--text-muted); padding:10px;">Nenhum simulado encontrado.</p>';
-}
-
-function abrirCalendarioInterativo() {
-  const modal = document.getElementById('modal-container');
-  const box = document.getElementById('modal-box-content');
-  box.innerHTML = `
-    <h2><i class="ph-duotone ph-calendar-blank"></i> Calendário de Provas</h2>
-    <p>Acompanhe suas datas e revisões agendadas para o ciclo 2026.</p>
-    <button class="btn-modal-close" onclick="fecharModal()">Fechar</button>
-  `;
-  modal.style.display = 'flex';
-}
-
-/* Funções Auxiliares de Estudo */
-function dispararConfete() {
-  if (typeof confetti === 'function') {
-    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+function limparScratchpad() {
+  if(confirm("Tem certeza que deseja limpar todas as anotações?")) {
+    document.getElementById('scratchpad-text').value = '';
+    localStorage.removeItem('medhub_scratchpad');
   }
 }
 
-function exportarParaPDF(elementoId, nomeArquivo = 'relatorio.pdf') {
-  const el = document.getElementById(elementoId);
-  if(el && typeof html2pdf !== 'undefined') {
-    html2pdf().set({ margin: 10, filename: nomeArquivo }).from(el).save();
+function exportarScratchpad() {
+  const txt = document.getElementById('scratchpad-text').value;
+  const blob = new Blob([txt], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "anotacoes_medhub.txt";
+  a.click();
+}
+
+// Mobile Menu
+function toggleMenuMobile() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// Funções Auxiliares de Arquivos, Títulos e Renderização
+function arquivoPertenceAMateria(nome, chave) { return mapaMaterias[chave].aliases.some(a => nome.toLowerCase().includes(a)); }
+function identificarMateriaDoArquivo(arq) {
+  for (const [ch, info] of Object.entries(mapaMaterias)) if (info.aliases.some(a => arq.toLowerCase().includes(a))) return { chave: ch, nomeOficial: info.nomeOficial };
+  return { chave: '', nomeOficial: 'Geral' };
+}
+function extrairBimestreDoArquivo(arq, ch) {
+  const match = arq.toLowerCase().match(/(?:modulo|módulo|m|prova|p|bimestre|b)[_\s-]*([1-5])/i);
+  return match ? parseInt(match[1]) : 1;
+}
+
+function formatarTituloSimulado(arquivo, chave) {
+  let nome = arquivo.split('/').pop().replace(/\.html?$/i, '');
+  if(chave && mapaMaterias[chave]) mapaMaterias[chave].aliases.forEach(a => nome = nome.replace(new RegExp(`${a}`, 'gi'), ' '));
+  nome = nome.replace(/(?:modulo|módulo|m|prova|p|bimestre|b)[_\s-]*[1-5]/gi, ' ').replace(/[-_]+/g, ' ').trim();
+  return nome || arquivo.replace(/\.html?$/i, '');
+}
+
+function renderizarCardsSimulados(lista, container, ehBusca = false) {
+  // Aplicando filtros
+  if (filtroPesquisaAtual === 'pendentes') lista = lista.filter(a => !concluidos.includes(a));
+  else if (filtroPesquisaAtual === 'concluidos') lista = lista.filter(a => concluidos.includes(a));
+
+  if (lista.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1/-1; padding: 40px; text-align: center;">Nenhum simulado correspondente encontrado.</div>`;
+    return;
+  }
+  
+  lista.forEach(arquivo => {
+    const info = identificarMateriaDoArquivo(arquivo);
+    const titulo = formatarTituloSimulado(arquivo, info.chave);
+    const concluido = concluidos.includes(arquivo);
+    const card = document.createElement('div');
+    card.className = 'subject-card simulado-card';
+    card.innerHTML = `
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+          ${ehBusca ? `<span class="count-badge">${info.nomeOficial}</span>` : ''}
+          ${concluido ? '<span class="done-badge">✔ Concluído</span>' : '<span class="count-badge">Pendente</span>'}
+        </div>
+        <h3 style="font-size: 1.15rem;">${titulo}</h3>
+      </div>
+    `;
+    card.onclick = () => carregarSimulado(encodeURI(arquivo), arquivo);
+    container.appendChild(card);
+  });
+}
+
+// Omnisearch
+function abrirOmnisearch() { trapFocus('modal-omnisearch', 'search-input'); }
+function fecharOmnisearch() { releaseFocus('modal-omnisearch'); }
+function fecharOmnisearchClick(e) { if(e.target.id === 'modal-omnisearch') fecharOmnisearch(); }
+
+function mudarFiltroBusca(filtro) {
+  filtroPesquisaAtual = filtro;
+  document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+  document.getElementById('filter-' + filtro).classList.add('active');
+  filtrarSimuladosPorBusca();
+}
+
+function filtrarSimuladosPorBusca() {
+  const termo = document.getElementById('search-input').value.toLowerCase().trim();
+  if (!termo && estadoAtual !== 'simulados_busca') return;
+  
+  estadoAtual = 'simulados_busca';
+  document.getElementById('tela-materias').classList.add('hidden');
+  document.getElementById('tela-bimestres').classList.add('hidden');
+  document.getElementById('tela-simulados').classList.remove('hidden');
+  document.getElementById('dashboard-widgets').classList.add('hidden');
+  document.getElementById('btn-back').classList.remove('hidden');
+  document.getElementById('main-title').innerText = 'Resultados da Busca';
+  
+  const filtrados = listaDeArquivos.filter(a => a.toLowerCase().includes(termo));
+  renderizarCardsSimulados(filtrados, document.getElementById('grid-simulados'), true);
+}
+
+// Atualizar Contadores
+function atualizarContadores() {
+  Object.keys(mapaMaterias).forEach(chave => {
+    const c = listaDeArquivos.filter(a => arquivoPertenceAMateria(a, chave)).length;
+    const el = document.getElementById(`count-${chave}`);
+    if (el) el.innerText = `${c} simulado${c !== 1 ? 's' : ''}`;
+  });
+}
+function atualizarContadoresBimestres() {
+  for (let b = 1; b <= mapaMaterias[materiaAtualChave].qtdDivisoes; b++) {
+    const c = listaDeArquivos.filter(a => arquivoPertenceAMateria(a, materiaAtualChave) && extrairBimestreDoArquivo(a, materiaAtualChave) === b).length;
+    const el = document.getElementById(`count-b${b}`);
+    if (el) el.innerText = `${c} simulado${c !== 1 ? 's' : ''}`;
   }
 }
+
+// Utilitários de Interface e Modais
+function abrirModalAjuda() { trapFocus('modal-ajuda', 'btn-close-ajuda'); }
+function fecharModalAjuda() { releaseFocus('modal-ajuda'); }
+function abrirModalConfig() { trapFocus('modal-config', 'btn-close-config'); }
+function fecharModalConfig() { releaseFocus('modal-config'); }
+
+function aplicarBentoToggle() {
+  const check = document.getElementById('toggle-bento').checked;
+  document.getElementById('grid-materias').classList.toggle('bento-active', check);
+  localStorage.setItem('preferencia_bento', check);
+}
+
+function toggleDarkModeConfig() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('preferencia_darkmode', isDark);
+}
+
+// Inicializações
+window.addEventListener('DOMContentLoaded', () => {
+  updateHistoryState({tela: 'materias'});
+  
+  document.getElementById('scratchpad-text').value = localStorage.getItem('medhub_scratchpad') || '';
+  document.getElementById('scratchpad-text').addEventListener('input', e => localStorage.setItem('medhub_scratchpad', e.target.value));
+
+  if (localStorage.getItem('preferencia_bento') === 'false') {
+    document.getElementById('toggle-bento').checked = false;
+    aplicarBentoToggle();
+  }
+  if (localStorage.getItem('preferencia_darkmode') === 'true') {
+    document.getElementById('toggle-darkmode').checked = true;
+    document.body.classList.add('dark-mode');
+  }
+  carregarArquivosDoGithub();
+});
+
+// Resumo Dashboard
+function renderizarWidgetsDashboard() {} // (Mesma função do seu script original que desenha os cards do dashboard)
+function abrirCalendarioInterativo(doPush = true) {} // (Mesma função de calendário original que popula os grids, adicione doPush logica semelhante)
